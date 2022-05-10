@@ -135,6 +135,15 @@
   All previous parts occur in the grass simulation functions; this step occurs in the shader function. There is a red rectangle that appears as the user changes the wind angle. The rectangle is there to visualize the direction from which the wind is traveling. To render this rectangle, we plotted points along the tangent of the wind angle. Then, we rotated these values by 90 degrees about the wind origin such that the plane they formed faced the grass. Then, we filled in the points as a triangle strip.
 </p>
 
+<h3>Problems encountered</h3>
+<p>
+  We encountered a few problems throughout the project. The first issue was getting to know the skeleton beyond what we needed to know for project 4. The biggest hurdle in the project was what might seem like the simplest task: getting a barebones, unsimulated, vertical grass blade rendered on the screen. This was simply due to us needing to get acquianted with unfamiliar parts of the skeleton. Another issue we faced is that we had two separate major tasks. One of them was modeling the grass, which our main point of reference is almost entirely based on. The other problem was creating the wind field, which we initially planned to build using fluid dynamics. However, we realized that fluid dynamics are quite complicated (and many people work solely on fluids for their final project), so we eventually scrapped the implementation for the simpler wind load approach. We faced a few technical issues as well. In the section about bending within reference 1, the authors discuss a scenario in which segments of the blade move in opposite directions, causing erratic blade shapes/movements. We ran into this issue at high velocities with rapid angle changes, and the paper proposes a solution, but we did not have time to implement it. Time constraints also limited us to the bending effects of grass, leaving the twisting and swinging effects to be implemented. 
+</p>
+
+<h3>Lessons learned</h3>
+<p>
+  We could have simplified our project by implementing different libraries or skeletons, in addition to those included in project 4. For example, we could have narrowed in on the grass implementation by using a pre-existing fluid dynamics wind simulation. On the other hand, we could have focused solely on fluid-based wind simulation and applied it to a pre-existing grass structure. We implemented parts of two different problems in order to obtain our end results, but maybe we could have abstracted away one of the problems and focused more intently on the other. We also learned about dealing with movement and rotation in 3 dimensions. At one point in our simulation, we built out the Rodrigues rotation formula, and we experimented with various axes of rotation for the point masses. We learned that three-dimensional rotation can get complicated quickly. We also explored the trade-offs in various forms of integration, looking mainly at Verlet integration (because we implemented it in project 4) and Euler integration (which was recommended in a referenced paper, and which we ended up using).
+</p>
  
 
 <h3 align="middle">Results</h3>
@@ -146,11 +155,11 @@ Results here
 <h3 align="middle">References</h3>
 
 <p>
-https://cgv.cs.nthu.edu.tw/download/file?guid=2707896d-4da2-11e6-a355-00113247b9b1<br>
-https://www.rds.oeb.ca/CMWebDrawer/Record/646733/File/document<br>
-https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu<br>
-http://spiff.rit.edu/classes/phys317/lectures/euler.html<br>
-https://www.youtube.com/watch?v=BAMhpyxP3S0
+1. https://cgv.cs.nthu.edu.tw/download/file?guid=2707896d-4da2-11e6-a355-00113247b9b1<br>
+2. https://www.rds.oeb.ca/CMWebDrawer/Record/646733/File/document<br>
+3. https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu<br>
+4. http://spiff.rit.edu/classes/phys317/lectures/euler.html<br>
+5. https://www.youtube.com/watch?v=BAMhpyxP3S0
 </p>
 
 <h3 align="middle">Contributions</h3>
