@@ -26,7 +26,9 @@
 <h1 align="middle">Final Project: Wind force on grass simulation</h1>
 <h2 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h2>
 
-<br><br>
+<div align="middle">
+<img src="videos/screen1.png" width="650">
+</div>
 
 <div>
 
@@ -38,28 +40,163 @@
 <p>Video:</p>
 <a href=""></a>
 
-<h3 align="middle">What we have accomplished</h3>
+<h2 align="middle">Abstract</h3>
 
 <p>
-  In this project, we plan to simulate the effects of wind on grass. We have broken the project into three main parts. First, we build the wind simulation, and next we need to create the grass shaders. Once these two tasks are completed, we can model the effects of the wind force and gravity on grass. So far, we have completed the wind simulation (1 of 3 main tasks). We were able to build a fairly realistic wind field that accurately moves the simulated cloth. We are currently working on building the grass shaders.
+  In this project, we simulate the effects of wind on grass. Our project consists of a few major segments. First, we built the wind simulation and tested it on a pinned cloth. We were able to build a fairly realistic wind field that accurately moves the simulated cloth, and we would later tailor this wind field to our grass object. Next, we set out to build that grass object and simulate the wind’s effect on it. This involved calculating the forces on the grass, using Euler integration to calculate the angular displacement, and doing 3D rotation based on the displacement. After the simulation phase, we built the grass shaders to make the grass more visually accurate. We also did some shading to help visualize the wind’s point of origin by displaying a rectangle that is tangent to it, facing the grass.
 </p>
 
-<h3 align="middle">Demonstration of progress</h3>
+<h2 align="middle">Technical Approach</h3>
+  <h3>Our starting point</h3>
+<p>
+  We began with the project 4 skeleton and built the grass within it. This means our grass structure utilizes the same point mass objects from the skeleton, and the grass simulator pipeline is similar to that of the cloth simulator.
+</p>
+<h3>The basis of our wind force</h3>
+<p>
+  We made a few alterations to the wind simulation from our original plans. Rather than basing our simulation off of fluid dynamics, we decided to go with a fixed wind field and alter the force during the grass simulation step. We decided to base our wind force calculations on 'wind load', which is typically calculated to determine the effect of high winds on a building/structure. We felt that using wind load as the force was similar to (and could be easily substituted for) equation 4 in the main paper that we referenced, which uses a fluid wind force. To calculate the wind load, we used the following equations: <br><br>
+  <b>F<sub>x</sub></b> = Dynamic Pressure &bull; (width &bull; height) &bull; cos(windAngle)<br>
+  <b>F<sub>y</sub></b> = 0 <br>
+  <b>F<sub>z</sub></b> = Dynamic Pressure &bull; (width &bull; height) &bull; sin(windAngle)<br>
+  <div style="text-indent: 3em">where Dynamic Pressure = Air Density &bull; windVelocity</div><br>
+
+  <b>Air Density</b> is 1.22 kg/m<sup>3</sup>, which is the density at sea level. <b>Wind velocity</b> and <b>wind angle</b> are obtained via sliders in the GUI. <b>Width</b> and <b>height</b> are obtained through JSON parameters for the scene. To implement the new GUI elements, we added a struct to the skeleton called WindParameters which functions similarly to ClothParameters, making the GUI input values readily available to our grass simulation functions.<br><br>
+  As demonstrated in the equations above, the wind affects point masses in the z and x directions, but it does not affect the y direction. This is a simplification we make due to the fact that our grass is, for the most part, oriented vertically on a horizontal plane. The given equations for F are the basis of our wind force, but we adjust the force vector in our grass simulation to make it seem more realistic.
+  <h3>Tweaking the wind force to appear more realistic in the grass simulation</h2>
+  We adjust the wind force directly by applying a coefficient that decreases in proportion to a point mass' distance from the wind origin. Before showing the equation for this coefficient, we should first define the <b>wind origin</b>. <br><br>
+  <div style="text-indent: 2em">
+  <code>windOrigin = Vector3D(width / 2 + width * cos(windAngle), halfBladeHeight, height / 2 + width * sin(windAngle));</code>
+  </div><br>
+  The wind origin is the point at windAngle degrees, along a circle that surrounds and extends up from the grass' xz plane. The circle's origin is at the center of the grass plane and shifted up to half a blade's vertical height, and its radius is the length of the plane.<br><br>
+  <div style="text-indent: 2em">
+  <code>windDistanceFactor =  0.5 + (1 / (point_masses[i].position - windOrigin).norm());</code>
+  </div><br>
+  The coefficient is fairly simply and its only purpose is to scale down the wind force exerted on a point the further away it is from the wind origin (and to increase wind force on points close to the wind source). This coefficient gives the impression that the grass is moving according to a time-variable wind force, since the coefficient will decrease as the grass is pushed further away over time.
+<h3>The structure of each grass blade</h3>
+<p>
+  We have gone over the external forces that will ultimately interact with and move our grass blades. However, before we go into these interactions and the internal forces present in a blade, we should explain the structure of each grass blade. The structure is derived from our main paper of reference.<br><br>
+  Each grass blade consists of four point masses, and three line segments are rendered between these four points. The first point on each blade of grass is the root, and its position never changes. The roots are all situated along an xz plane. Extending upward from the root are the three other points, each an equal distance apart. The static state of a grass blade is for it to be pointed straight up, in the y direction.<br><br>
+  Each of the three line segments contain an associated collection vectors. First, there is the vector <b>E<sub>e</sub></b>, which is the vector from one point of a segment to the other; the direction is always from root to tip. Second, we have an arbitrarily determined orthogonal vector called <b>E<sub>w</sub></b>. E<sub>w</sub> is the direction that our flat leaf surface will extend out to from our point masses. Lastly, we have a normalized vector <b>E<sub>n</sub></b> that is orthogonal to both E<sub>e</sub> and E<sub>w</sub>. The wind force will affect the segments in the E<sub>n</sub> direction, perpendicular to the leaf surface. For each point mass i, that is not a root, we then have:
+  <div style="text-indent: 2em">
+  <code>Vector3D E_e = point_masses[i].position - point_masses[i - 1].position;</code>
+  </div>
+  <div style="text-indent: 2em">
+  <code>Vector3D E_w = cross(E_e, arbitraryVectorNonCollinear);</code>
+  </div>
+  <div style="text-indent: 2em">
+  <code>Vector3D E_n = normalize(cross(E_e, E_w));</code>
+  </div><br>
+</p>
+
+    
+<h3>Internal forces and how the wind force is exerted on the grass</h3>
+<p>
+  The wind force is applied to the grass segment along the vector E<sub>n</sub> that we defined above. There was somewhat of a trade-off made here, since a perfectly perpendicular wind angle to E<sub>n</sub> will cause the grass not to move at all. However, if we wanted to render the grass with quad surfaces rather than straight lines, we needed to define a normal, and we needed the wind to affect the normal in directional consistency with the rendered quads. Ultimately, we decided to have the wind affect the blades in the direction of the normal. So, the wind force ultimately exerted on the blade at each time step is:
+  <div style="text-indent: 2em">
+  <code>dot(E_n, windForce) * E_n;</code>
+  </div><br>
+  There are also internal forces that act on our blade of grass. We add a restoration force to the net force acting on a point mass.<br><br>
+  <div style="text-indent: 2em">
+  <code>Vector3D restoration = stiffnessCoefficient * cross(angularDisplacement, currentPositionToStaticPosition);</code>
+  </div><br>
+  We will discuss how to calculate angular displacement in the next section, but it begins at 0. The vector pointing from the current to the static position of a point mass guides the point mass back to its original state. The stiffness coefficient simply determines the strength of this restoration force -- the higher it is, the lesser the effect of a displacing force (i.e wind). The stiffness also varies on a single blade and decreases from root to tip; this gives our blade a bending shape that we would see in real grass. We also have a damping force that acts opposite the direction of the angular velocity and gives an oscillating effect to the grass.<br><br>
+  <div style="text-indent: 2em">
+  <code>Vector3D damping = -dampingCoefficient * angularVelocity;</code>
+  </div><br> Once again, these forces derived primarily from reference 1.
+</p>
+
+<h3>Calculating angular displacement</h3>
+<p>
+  Our ultimate goal is calculate <b>angular displacement</b> caused by the net force and use it to rotate the point mass. This angular displacement is the displacement from the static grass to its current angle about the root. This is how our blades actually move. We use Euler integration to obtain values for angular velocity and displacement, and we use an approximation for angular acceleration to allow us to do this integration. Our basic Euler integration method for determining the angular displacement of a point mass i looks similar to this: <br>
+  <div style="text-indent: 2em">
+  <code>Vector3D angularVelocity = previousVelocities[i] + angularAcceleration * delta_t;</code>
+  </div>
+  <div style="text-indent: 2em">
+  <code>Vector3D angularDisplacement = angularVelocity * delta_t + 0.5 * angularAcceleration * delta_t * delta_t;</code>
+  </div><br>
+  Our approximation for <b>angular acceleration</b> is obtained by dividing the torque by the moment of inertia.<br><br>
+  <div style="text-indent: 2em">
+  <code>Vector3D torque = cross(E_e, point_masses[i].forces);</code>
+  </div>
+  <div style="text-indent: 2em">
+  <code>double inertia = mass * segmentLength * segmentLength;</code>
+  </div>
+  <div style="text-indent: 2em">
+  <code>Vector3D angularAcceleration = torque / inertia;</code>
+  </div><br>
+</p>
+
+<h3>How we rotate based on angular displacement</h3>
+<p>
+  When we initially rotated the points, we were rotating them around the next point closest to the root, but we found there were imprecisions in the calculations that added up over timesteps. Instead, we rotate around the static root. First, we translate the point we wish to rotate; we bring it to the origin by subtracting the root position from the point's position vector. Then, we perform 3D rotations based on the angular displacement, using the standard 3D displacement matrices for each axis. We rotate around the X axis, then Y axis, then Z axis. Once the 3 rotations are complete, we translate again by adding the root position to the rotated vector.
+</p>
+
+<h3>Wind origin rectangle rendering</h3>
+<p>
+  All previous parts occur in the grass simulation functions; this step occurs in the shader function. There is a red rectangle that appears as the user changes the wind angle. The rectangle is there to visualize the direction from which the wind is traveling. To render this rectangle, we plotted points along the tangent of the wind angle. Then, we rotated these values by 90 degrees about the wind origin such that the plane they formed faced the grass. Then, we filled in the points as a triangle strip.
+</p>
+
+ 
+
+<h3 align="middle">Results</h3>
 
 <p>
-  To demonstrate how our wind field behaves, we use pinned2.json with the wind field enabled. We chose this scene because it is vertically oriented and contains pinned points (much like our grass will be vertical and contain a root that grounds it). You can also see the GUI changes that we made and the effects of altering the wind velocity and angle. Here is a video demo (note that this is not our 1 minute presentation that is linked at the top).
+Results here
 </p>
 
- <video align="middle" width="640" controls>
+<h3 align="middle">References</h3>
+
+<p>
+https://cgv.cs.nthu.edu.tw/download/file?guid=2707896d-4da2-11e6-a355-00113247b9b1<br>
+https://www.rds.oeb.ca/CMWebDrawer/Record/646733/File/document<br>
+https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu<br>
+http://spiff.rit.edu/classes/phys317/lectures/euler.html<br>
+https://www.youtube.com/watch?v=BAMhpyxP3S0
+</p>
+
+<h3 align="middle">Contributions</h3>
+
+<p>
+Justin: Built the simulation function:
+  <div style="text-indent: 2em">
+  Wind (for cloth and grass), damping, and restoration forces
+  </div>
+  <div style="text-indent: 2em">
+  Bending capabilities for grass
+  </div>
+  <div style="text-indent: 2em">
+  Euler integration for the angular displacement of grass point masses
+  </div>
+  <div style="text-indent: 2em">
+  Mimicked passage of time in the wind force for grass
+  </div>
+  <br>
+Created the wind field and grass object. 
+Created the function for the 3D rotation of the grass point masses. 
+Handled the wireframe shading for the red rectangle wind visualization, the basic grass shading (line segment vertex shading), and the circular plane beneath the grass. 
+Created proposal and milestone websites, and recorded the demos. 
+Added the GUI sliders for wind velocity and angle.
+</p>
+
+<p>
+  Steven: 
+</p>
+
+<p>
+  Orion: 
+</p>
+
+<p>
+  Jonathan: 
+</p>
+
+<video align="middle" width="640" controls>
   <source src="videos/demowind.mov" type="video/mp4">
 Your browser does not support the video tag.
 </video> 
+  <h3 align="middle">Reflection on progress</h3>
 
-<h3 align="middle">Reflection on progress</h3>
+  <p>
 
-<p>
-  We made a few alterations to the wind simulation from our original plans. Rather than basing our simulation off of fluid dynamics, we decided to take the advice from the proposal feedback. We first built a fixed wind field with a uniform force and then made various changes to make the wind more realistic. The forces of the field are calculated using 'wind load', which is typically calculated when determining the effect of wind force on a building/structure. To calculate the wind load, we need values for the air density, dynamic pressure, wind angle, and surface area of the object that the wind is hitting. The air density value we use is the density at sea level. The dynamic pressure is calculated using the air density and wind velocity. The maximum wind velocity is provided by the user via a slider we made in the GUI. The user also has an option to change the wind angle in the GUI using a slider as well. The angle at which wind hits affects points in the z and x directions, but does not affect the y direction of the points. To implement these new GUI elements, we added a new class/struct to the skeleton called WindParameters which functions similarly to ClothParameters, making the GUI input values readily available to other parts of the program. <br><br>
-  We primarily use wind load to model our wind field, but we make other smaller tweaks as well to make the wind seem more realistic. For example, wind gusts do not occur at every timestep. There is only a 1 in 3 chance of a wind force being applied to the cloth at a given timestep. In addition, the wind force is not always guaranteed to be calculated using the max wind velocity. Instead, each gust of wind is randomly between 1 and 1/2 times the maximum wind velocity. We add these random factors in to mimic the seemingly erratic nature of wind gusts in reality. Another aspect of our wind field is that the force scales based on the y value of the point being affected. The force decreases based on a percentage of how far the y value is from 0, so that the top of the grass will seem more easily swayed (this effect is reversed in our pinned2.json demo, since the object is pinned at the top rather than rooted at the bottom like our grass will be). We think we can complete our original tasks that we set out to in our proposal (that is, the task schedule is unchanged).
   </p>
 
 </body>
