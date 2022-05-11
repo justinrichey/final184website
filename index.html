@@ -135,7 +135,7 @@
   All previous parts occur in the grass simulation functions; this step occurs in the shader function. There is a red rectangle that appears as the user changes the wind angle. The rectangle is there to visualize the direction from which the wind is traveling. To render this rectangle, we plotted points along the tangent of the wind angle. Then, we rotated these values by 90 degrees about the wind origin such that the plane they formed faced the grass. Then, we filled in the points as a triangle strip.
 </p>
 
-<h3> Shader Pipeline
+<h3> Shader Pipeline</h3>
 <p>
   Once we had the four points for each blade of grass and its movement according to the wind acting on it, we had to provide these blades their appearance. Aside from the usual vertex shader feeding outputs into the fragment shader, this time we have a geometry shader in between the two aforementioned shaders in order to "expand" the edges between the points of a blade and provide body to the blade. 
   First, a new drawGrass function is made which feeds the blade's four points and edge widths (e_w) as input to the vertex shader for each blade in the scene. For each blade, a GL_LINE_STRIP_ADJACENCYprimitive is rendered (so we may pass four points into the geometry shader later).
@@ -179,7 +179,10 @@ Results here
 <h3 align="middle">Contributions</h3>
 
 <p>
-Justin: Built the simulation function:
+Justin: 
+<div >
+  Built the simulation function:
+  </div>
   <div style="text-indent: 2em">
   Wind (for cloth and grass), damping, and restoration forces
   </div>
