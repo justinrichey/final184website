@@ -135,9 +135,22 @@
   All previous parts occur in the grass simulation functions; this step occurs in the shader function. There is a red rectangle that appears as the user changes the wind angle. The rectangle is there to visualize the direction from which the wind is traveling. To render this rectangle, we plotted points along the tangent of the wind angle. Then, we rotated these values by 90 degrees about the wind origin such that the plane they formed faced the grass. Then, we filled in the points as a triangle strip.
 </p>
 
+<h3> Shader Pipeline
+<p>
+  Once we had the four points for each blade of grass and its movement according to the wind acting on it, we had to provide these blades their appearance. Aside from the usual vertex shader feeding outputs into the fragment shader, this time we have a geometry shader in between the two aforementioned shaders in order to "expand" the edges between the points of a blade and provide body to the blade. 
+  First, a new drawGrass function is made which feeds the blade's four points and edge widths (e_w) as input to the vertex shader for each blade in the scene. For each blade, a GL_LINE_STRIP_ADJACENCYprimitive is rendered (so we may pass four points into the geometry shader later).
+
+  From the vertex shader, we simply pass through its inputs to the geometry shader and do not perform and change of basis. This is because we do not want to transform the points to model space or screen space until after we have created the new points and edges within the geometry shader.
+
+  Now, within the geometry shader is where we expand the edges of the line representing each blade. Each point is expanded by the length of its edge width (e_w) in both directions (adding and subtracting this length) multiplied by a small constant factor dependent on where the point lies on this blade. Points higher up on the blade have a smaller factor so that when used to expand the point, will narrow down from root to tip. Once these points have been created, their positions are left multiplied by the model's transformation and view projection transformation to visualize these primitives onto the screen. As a result, this geometry shader will create a total of 8 points and render these as a triangle_strip primitive, outputting these points to the fragment shader to be colored/textured.  
+  Finally, the fragment shader simply takes these points from the geometry shader and colors them based on the color given from the nanogui (u_color).
+</p>
+
 <h3>Problems encountered</h3>
 <p>
   We encountered a few problems throughout the project. The first issue was getting to know the skeleton beyond what we needed to know for project 4. The biggest hurdle in the project was what might seem like the simplest task: getting a barebones, unsimulated, vertical grass blade rendered on the screen. This was simply due to us needing to get acquianted with unfamiliar parts of the skeleton. Another issue we faced is that we had two separate major tasks. One of them was modeling the grass, which our main point of reference is almost entirely based on. The other problem was creating the wind field, which we initially planned to build using fluid dynamics. However, we realized that fluid dynamics are quite complicated (and many people work solely on fluids for their final project), so we eventually scrapped the implementation for the simpler wind load approach. We faced a few technical issues as well. In the section about bending within reference 1, the authors discuss a scenario in which segments of the blade move in opposite directions, causing erratic blade shapes/movements. We ran into this issue at high velocities with rapid angle changes, and the paper proposes a solution, but we did not have time to implement it. Time constraints also limited us to the bending effects of grass, leaving the twisting and swinging effects to be implemented. 
+  Similarly, implementing the shader pipeline with our starting code proved difficult. Navigating the code base took more time than expected in order to work on this portion, and there was also not much information online for us to adopt the same ideas to our codebase. The paper which we based much of our grass implementation on did not dive deeply into the implementation of the shader pipeline and and was moreso a general scope of the process. Therefore, Steven had to play around for a few days figuring out how to work with geometry shaders and incorporating it into the shader pipeline that was present at the starting point. This shader pipeline took more effort and time than we had initially anticipated and in retrospect we should have delved deeper into it from the beginning. All in all, playing around and reading documentation was the best way to make progress in regards to this section of our program.
+  Aside from these technical challenges, one of our other tough and unavoidable hurdles were a result of two of our team members being sick from COVID. This affected much of our roadmap and we had to adapt with slight changes in scope to an extent which still did not damage the integrity of our original goals. From these complications, we were not able to get much work done during the weeks which it occurred, however we were still able to discuss our implementation and try to keep each other up-to-date on the current objectives to be met.
 </p>
 
 <h3>Lessons learned</h3>
@@ -160,6 +173,7 @@ Results here
 3. https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu<br>
 4. http://spiff.rit.edu/classes/phys317/lectures/euler.html<br>
 5. https://www.youtube.com/watch?v=BAMhpyxP3S0
+6. https://learnopengl.com/Advanced-OpenGL/Geometry-Shader
 </p>
 
 <h3 align="middle">Contributions</h3>
@@ -188,6 +202,20 @@ Added the GUI sliders for wind velocity and angle.
 
 <p>
   Steven: 
+  <div style="text-indent: 2em">
+      1. Started implementation of grass and the effects by wind on its movement alongside Justin
+        <div style="text-indent: 2em">
+            - Set up necessary data structures involving grass (e.g. blades, edges between points, edge normals, edge widths)
+            - Established json format for grass models, involving wind parameters as well.
+        </div>
+      2. Created shader pipeline for grass models
+        <div style="text-indent: 2em">
+            - Implemented new Geometry shader between Vertex and Fragment shaders.
+            - Created Vertex, Geometry, and Fragment shaders for this pipeline
+            - Created drawGrass function, passing in necessary information (e.g. edges, blade normals, uniforms)
+        </div>
+      3. Created final video (shader pipeline section) alongside Justin
+  </div>
 </p>
 
 <p>
